@@ -28,7 +28,10 @@ jobs:
           fi
           case "$version" in
             *-rc.*) echo "production=false" >> "$GITHUB_OUTPUT";;
-            *) test "$GITHUB_REF_TYPE" = tag || { echo "Stable builds require a matching version tag"; exit 1; }
+            *) if [ "$GITHUB_REF_TYPE" != tag ]; then
+                 test "$GITHUB_REF" = refs/heads/main
+                 test "$(git log -1 --format=%s)" = "Release PPS $version" || { echo "Stable builds require a matching tag or explicit release commit"; exit 1; }
+               fi
                echo "production=true" >> "$GITHUB_OUTPUT";;
           esac
           notes=".github/release-notes/$tag.md"
@@ -116,6 +119,6 @@ jobs:
           printf '```\n' >> "$notes"
           case "$VERSION" in
             *-rc.*) set -- --prerelease --latest=false;;
-            *) set -- --latest --verify-tag;;
+            *) if [ "$GITHUB_REF_TYPE" = tag ]; then set -- --latest --verify-tag; else set -- --latest; fi;;
           esac
           gh release create "$TAG" dist/* --target "$GITHUB_SHA" "$@" --title "Phone Projection Scaling $VERSION" --notes-file "$notes"
