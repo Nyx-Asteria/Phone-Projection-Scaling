@@ -25,7 +25,7 @@ Vehicle screenshots will be added following validation. Planned comparisons: 50%
 
 ## Settings
 
-Open the mod settings in HMG-API, select each scale, apply and restart the head unit while parked. Reconnect the phone. 100% retains the original receiver values. Do not combine with another mod that changes projection density. If using Ultra-Lite, keep this mod’s CarPlay scale at 100% to avoid the shared native hook. See [development notes](docs/DEVELOPMENT.md).
+Open the mod settings in HMG-API, select each scale, apply and restart the head unit while parked. Reconnect the phone. 100% retains the original receiver values. Do not combine with another mod that changes projection density. With a compatible CarPlay Ultra-Lite K5 development build (planned RC5), CPUL owns the shared /info hook and reads this mod's CarPlay scale at startup. This mod withholds its standalone CarPlay recipe whenever CPUL is enabled. Android Auto scaling remains independent. Older CPUL builds do not consume this setting; restart after changing either mod, and disable CPUL if standalone CarPlay scaling is required. Coexistence is not yet vehicle-validated. See [development notes](docs/DEVELOPMENT.md).
 
 ## Development
 
