@@ -6,7 +6,7 @@ Pinned source: [Ultra-Lite 4a4ffa85](https://github.com/Nyx-Asteria/carplay-ultr
 
 The standalone native segment uses only the verified /info branch at 0x9c20, the original AirPlayCopyServerInfo call, and CFLite routines from the pinned recipe. It copies the primary display, changes only its two physical dimensions, and preserves all other entries. The configuration is private to this mod (pps-scale). Stock mode does not request a patch. The source is not yet compiled or validated.
 
-The native hook overlaps Ultra-Lite's /info branch. HMG-API rejects overlapping native recipes, but the first loaded recipe wins; do not run both CarPlay modifications together. Use 100% in this mod if Ultra-Lite owns CarPlay. An installed memory hook cannot be unloaded until process restart. Uninstallation leaves no on-disk system binary modification; any stale private scale file is ignored without the hook.
+The native hook overlaps Ultra-Lite's /info branch. PPS defers its native patch when Ultra-Lite K5 is enabled; a compatible host reads PPS settings. Disable the host and restart if it cannot apply its native recipe. Coexistence remains untested. An installed memory hook cannot be unloaded until process restart. Uninstallation leaves no on-disk system binary modification; any stale private scale file is ignored without the hook.
 
 ## Android Auto
 

@@ -1,0 +1,55 @@
+name: RC build and test
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: pps-rc
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/checkout@v4
+        with:
+          repository: Open-HMG/HMG-API
+          ref: 45c16fd438b620c71a17b7c33f799f7025baa564
+          path: .hmg-api
+          persist-credentials: false
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld python3-pyelftools zip unzip
+          sdkmanager 'platforms;android-19' 'build-tools;35.0.0'
+      - name: Build, test, sign with disposable RC key
+        env:
+          HMG_API: ${{ github.workspace }}/.hmg-api
+        run: |
+          export ANDROID_JAR="$ANDROID_HOME/platforms/android-19/android.jar"
+          export D8="$ANDROID_HOME/build-tools/35.0.0/d8"
+          sh build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phone-projection-scaling-rc
+          path: dist/*
+          if-no-files-found: error
+      - name: Publish test prerelease
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(python3 -c 'import json; print(json.load(open("mod.json"))["version"])')
+          case "$version" in *-rc.*) ;; *) exit 0;; esac
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release already exists; bump RC version for another signed release."
+            exit 0
+          fi
+          gh release create "$tag" dist/* --target "$GITHUB_SHA" --prerelease --title "Phone Projection Scaling $version" --notes-file docs/RC1.md
