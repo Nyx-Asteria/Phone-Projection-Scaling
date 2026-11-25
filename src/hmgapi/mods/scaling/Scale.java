@@ -5,7 +5,7 @@ public final class Scale {
     public static int percent(String value) {
         try {
             int n = Integer.parseInt(value);
-            return n >= 75 && n <= 125 && n % 5 == 0 ? n : 100;
+            return n >= 50 && n <= 100 && n % 5 == 0 ? n : 100;
         } catch (NumberFormatException e) {
             return 100;
         }

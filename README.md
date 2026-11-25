@@ -7,14 +7,14 @@ Independent CarPlay and Android Auto interface scaling for Hyundai and Kia Gen5W
 ## Features
 
 - Independent Apple CarPlay and Android Auto scaling.
-- 75–125% in 5% increments; 100% by default.
+- 50–100% in 5% increments; 100% by default.
 - Native HMG-API single-choice settings, no text entry.
 - Android Auto density relative to the original receiver configuration.
 - No changes to driving restrictions, wireless pairing, audio or navigation guidance.
 
 ## Screenshots
 
-Vehicle screenshots will be added following validation. Planned comparisons: 75%, 100% and 125% for each projection system.
+Vehicle screenshots will be added following validation. Planned comparisons: 50%, 75% and 100% for each projection system.
 
 ## Compatibility
 
