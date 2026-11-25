@@ -7,7 +7,7 @@
       "default": "100",
       "apply": "restart",
       "title": "Apple CarPlay",
-      "description": "Interface scaling (native support pending).",
+      "description": "Interface scale on supported CarPlay receivers. Apply and restart while parked.",
       "options": [
         {
           "value": "50",

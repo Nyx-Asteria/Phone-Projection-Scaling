@@ -2,7 +2,7 @@
 
 Independent CarPlay and Android Auto interface scaling for Hyundai and Kia Gen5W head units running [HMG-API](https://github.com/Open-HMG/HMG-API).
 
-> **Development status:** Pre-release source; not yet ready for installation. CarPlay native patch isolation and in-car validation are pending.
+> **Development status:** Pre-release source; both projection implementations are present. Compilation, packaging and in-car validation are pending.
 
 ## Features
 
@@ -25,11 +25,11 @@ Vehicle screenshots will be added following validation. Planned comparisons: 50%
 
 ## Settings
 
-Open the mod settings in HMG-API, select each scale, apply and restart the head unit while parked. Reconnect the phone. 100% retains the original receiver values. Do not combine with another mod that changes projection density or the same CarPlay display hook.
+Open the mod settings in HMG-API, select each scale, apply and restart the head unit while parked. Reconnect the phone. 100% retains the original receiver values. Do not combine with another mod that changes projection density. If using Ultra-Lite, keep this mod’s CarPlay scale at 100% to avoid the shared native hook. See [development notes](docs/DEVELOPMENT.md).
 
 ## Development
 
-The original CarPlay scaling experiment is documented in [this Ultra-Lite commit](https://github.com/Nyx-Asteria/carplay-ultra-lite-gen5w/commit/4a4ffa85fb28141f3d8ffbf61e8e3e0241885b29). Its Java and native size handling need to be isolated before standalone CarPlay support is enabled. Android Auto uses HMG-API's mapped `gpm.video_sink.nearest` hook.
+The original CarPlay scaling experiment is documented in [this Ultra-Lite commit](https://github.com/Nyx-Asteria/carplay-ultra-lite-gen5w/commit/4a4ffa85fb28141f3d8ffbf61e8e3e0241885b29). The standalone native source changes only the physical dimensions of the primary display; the build generator emits a single verified /info branch. Android Auto uses HMG-API's mapped `gpm.video_sink.nearest` hook.
 
 ## Credits
 

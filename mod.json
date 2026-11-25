@@ -6,12 +6,18 @@
   "authors": [
     "Nyx-Asteria"
   ],
-  "description": "Independent phone projection interface scaling. Development build: Android Auto only.",
+  "description": "Independent CarPlay and Android Auto interface scaling.",
   "hooks": {
     "jar": "hooks.jar",
     "entry": "hmgapi.mods.scaling.ProjectionScaling",
     "points": {
       "gpm.video_sink.nearest": "change"
+    },
+    "native": {
+      "libCarPlayCore.so": [
+        "recipes/carplay-scaling.recipe"
+      ]
     }
-  }
+  },
+  "license": "GPL-3.0-or-later"
 }
