@@ -1,0 +1,121 @@
+name: Build and release
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: pps-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Validate version and release intent
+        id: version
+        run: |
+          set -eu
+          version=$(python3 -c 'import json; print(json.load(open("mod.json"))["version"])')
+          echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'
+          tag="v$version"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            test "$GITHUB_REF_NAME" = "$tag"
+          fi
+          case "$version" in
+            *-rc.*) echo "production=false" >> "$GITHUB_OUTPUT";;
+            *) test "$GITHUB_REF_TYPE" = tag || { echo "Stable builds require a matching version tag"; exit 1; }
+               echo "production=true" >> "$GITHUB_OUTPUT";;
+          esac
+          notes=".github/release-notes/$tag.md"
+          test -s "$notes" || { echo "Missing required changelog: $notes"; exit 1; }
+          grep -q '^## Changelog' "$notes" || { echo "Changelog section required"; exit 1; }
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: Open-HMG/HMG-API
+          ref: 45c16fd438b620c71a17b7c33f799f7025baa564
+          path: .hmg-api
+          persist-credentials: false
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld python3-pyelftools zip unzip
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-19" "build-tools;35.0.0"
+          /usr/bin/python3 -c 'import elftools'
+      - name: Build HMG-API mod SDK
+        run: |
+          cd .hmg-api
+          ./build.sh sdk
+      - name: Prepare permanent signing key
+        if: steps.version.outputs.production == 'true'
+        env:
+          MOD_KEY: ${{ secrets.MOD_KEY }}
+          MOD_KEY_PUB: ${{ secrets.MOD_KEY_PUB }}
+        run: |
+          set -eu
+          umask 077
+          test -n "$MOD_KEY" && test -n "$MOD_KEY_PUB"
+          mkdir -p "$RUNNER_TEMP/pps-keys"
+          printf '%s' "$MOD_KEY" | base64 -d > "$RUNNER_TEMP/pps-keys/author.key"
+          printf '%s' "$MOD_KEY_PUB" | base64 -d > "$RUNNER_TEMP/pps-keys/author.key.pub"
+          test -s "$RUNNER_TEMP/pps-keys/author.key"
+          test -s "$RUNNER_TEMP/pps-keys/author.key.pub"
+          echo "SIGNING_KEY=$RUNNER_TEMP/pps-keys/author.key" >> "$GITHUB_ENV"
+      - name: Build, test and sign
+        env:
+          HMG_API: ${{ github.workspace }}/.hmg-api
+        run: |
+          set -eu
+          export ANDROID_JAR="$ANDROID_HOME/platforms/android-19/android.jar"
+          export D8="$ANDROID_HOME/build-tools/35.0.0/d8"
+          SDK_ZIP=$(find .hmg-api/out/dist -maxdepth 1 -name 'hmgapi-mod-sdk-*.zip' -print -quit)
+          test -n "$SDK_ZIP"
+          mkdir -p "$RUNNER_TEMP/hmgapi-sdk"
+          unzip -q "$SDK_ZIP" -d "$RUNNER_TEMP/hmgapi-sdk"
+          export HMGAPI_SDK="$RUNNER_TEMP/hmgapi-sdk"
+          export HMGAPI_CP="$HMGAPI_SDK/lib/hmgapi-engine.jar"
+          export PYTHON=/usr/bin/python3
+          test -f "$HMGAPI_CP"
+          test -f "$HMGAPI_SDK/bin/mknemesismod.sh"
+          sh build.sh
+          (cd dist && sha256sum -c SHA256SUMS)
+      - name: Remove private signing material
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/pps-keys"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phone-projection-scaling-packages
+          path: dist/*
+          if-no-files-found: error
+      - name: Publish release with full changelog
+        if: github.ref == 'refs/heads/main' || github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -eu
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; use a new version for new packages."
+            exit 0
+          fi
+          notes="$RUNNER_TEMP/release-notes.md"
+          cp ".github/release-notes/$TAG.md" "$notes"
+          printf '\n## SHA-256 checksums\n\n```text\n' >> "$notes"
+          cat dist/SHA256SUMS >> "$notes"
+          printf '```\n' >> "$notes"
+          case "$VERSION" in
+            *-rc.*) set -- --prerelease --latest=false;;
+            *) set -- --latest --verify-tag;;
+          esac
+          gh release create "$TAG" dist/* --target "$GITHUB_SHA" "$@" --title "Phone Projection Scaling $VERSION" --notes-file "$notes"
