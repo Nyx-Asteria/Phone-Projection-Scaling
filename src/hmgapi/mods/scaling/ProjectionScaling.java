@@ -29,6 +29,8 @@ public final class ProjectionScaling extends ModEntry {
             if (!supportedCore || !mod.enabled()) { clear(mod); return; }
             int percent = Scale.percent(mod.settingString("carplay_scale", "100"));
             if (percent == 100) { clear(mod); return; }
+            // CPUL and PPS patch the same /info branch. Never request both.
+            if (cpulOwnsInfo(mod)) { clear(mod); return; }
             if (write(mod, percent)) {
                 mod.log("Requesting verified CarPlay scaling recipe (" + percent + "%)");
                 mod.nativePatch(app, "libCarPlayCore.so");
@@ -50,6 +52,33 @@ public final class ProjectionScaling extends ModEntry {
             }
         });
         mod.log("Android Auto scaling " + percent + "%; hook=" + (hook != null));
+    }
+
+    /** Conservative boot-time arbitration using HMG-API's public enabled-mod snapshot.
+     * Old CPUL builds also own the branch, but only compatible builds consume PPS settings.
+     * Restart after changing either mod's enabled state or scaling settings. */
+    private static boolean cpulOwnsInfo(ModContext mod) {
+        try {
+            FileInputStream in = new FileInputStream("/data/hmgapi/public/state.json");
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            try {
+                byte[] buf = new byte[4096]; int n;
+                while ((n = in.read(buf)) != -1) {
+                    if (out.size() + n > 4 * 1024 * 1024) throw new java.io.IOException("state too large");
+                    out.write(buf, 0, n);
+                }
+            } finally { in.close(); }
+            JSONObject mods = new JSONObject(out.toString("UTF-8")).getJSONObject("mods");
+            JSONObject cpul = mods.optJSONObject("carplay-ultra-lite-k5");
+            if (cpul != null && cpul.optBoolean("enabled", false)) {
+                mod.log("CarPlay /info owned by CPUL; standalone recipe withheld; compatible CPUL consumes PPS scale");
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            mod.error("Cannot establish CarPlay native ownership; standalone recipe withheld", e);
+            return true;
+        }
     }
 
     // HMG-API owns an explicit absolute density override; never stack a relative override on it.
