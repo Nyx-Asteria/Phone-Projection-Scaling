@@ -1,0 +1,17 @@
+{
+  "id": "phone-projection-scaling",
+  "name": "Phone Projection Scaling",
+  "version": "0.1.0",
+  "hmgapi": ">=1.0.2",
+  "authors": [
+    "Nyx-Asteria"
+  ],
+  "description": "Independent phone projection interface scaling. Development build: Android Auto only.",
+  "hooks": {
+    "jar": "hooks.jar",
+    "entry": "hmgapi.mods.scaling.ProjectionScaling",
+    "points": {
+      "gpm.video_sink.nearest": "change"
+    }
+  }
+}

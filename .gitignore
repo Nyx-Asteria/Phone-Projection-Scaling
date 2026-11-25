@@ -1,0 +1,7 @@
+build/
+dist/
+*.class
+*.jar
+*.key
+*.pem
+local.properties
