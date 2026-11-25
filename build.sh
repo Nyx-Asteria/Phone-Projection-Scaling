@@ -17,9 +17,9 @@ javac --release 8 -cp "$ANDROID_JAR:$tmp/runtime" -d "$tmp/classes" @"$tmp/sourc
 javac --release 8 -cp "$tmp/classes" -d "$tmp/tests" tests/ScaleTest.java
 java -cp "$tmp/classes:$tmp/tests" ScaleTest
 echo "Scale regression tests passed"
-python3 tools/build_native.py "$tmp/native"
+"${PYTHON:-python3}" tools/build_native.py "$tmp/native"
 cp "$tmp/native/carplay-scaling.recipe" "$tmp/mod/recipes/"
-python3 tests/check_recipe.py "$tmp/mod/recipes/carplay-scaling.recipe"
+"${PYTHON:-python3}" tests/check_recipe.py "$tmp/mod/recipes/carplay-scaling.recipe"
 jar cf "$tmp/classes.jar" -C "$tmp/classes" hmgapi
 "$D8" --min-api 19 --lib "$ANDROID_JAR" --classpath "$tmp/runtime" --output "$tmp/dex" "$tmp/classes.jar"
 jar cMf "$tmp/mod/hooks.jar" -C "$tmp/dex" classes.dex
@@ -29,10 +29,10 @@ if [ -z "${SIGNING_KEY:-}" ]; then
     case "$version" in *-rc.*) ;; *) echo "Production signing key required" >&2; exit 1;; esac
     umask 077
     SIGNING_KEY="$tmp/test.key"
-    java -cp "$tmp/runtime" hmgapi.engine.Signing keygen "$SIGNING_KEY"
+    java -cp "${HMGAPI_CP:-$tmp/runtime}" hmgapi.engine.Signing keygen "$SIGNING_KEY"
 fi
-java -cp "$tmp/runtime" hmgapi.engine.Signing sign "$tmp/mod" "$SIGNING_KEY"
-java -cp "$tmp/runtime" hmgapi.engine.Signing verify "$tmp/mod"
+java -cp "${HMGAPI_CP:-$tmp/runtime}" hmgapi.engine.Signing sign "$tmp/mod" "$SIGNING_KEY"
+java -cp "${HMGAPI_CP:-$tmp/runtime}" hmgapi.engine.Signing verify "$tmp/mod"
 (cd "$tmp/mod" && find . -type f | LC_ALL=C sort | zip -0 -q -X -D "$tmp/package.zip" -@)
 archive="$root/dist/phone-projection-scaling-$version.zip"
 mv "$tmp/package.zip" "$archive"

@@ -27,13 +27,25 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang lld python3-pyelftools zip unzip
-          sdkmanager 'platforms;android-19' 'build-tools;35.0.0'
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-19" "build-tools;35.0.0"
+          /usr/bin/python3 -c 'import elftools'
+      - name: Build HMG-API mod SDK
+        run: |
+          cd .hmg-api
+          ./build.sh sdk
       - name: Build, test, sign with disposable RC key
         env:
           HMG_API: ${{ github.workspace }}/.hmg-api
         run: |
           export ANDROID_JAR="$ANDROID_HOME/platforms/android-19/android.jar"
           export D8="$ANDROID_HOME/build-tools/35.0.0/d8"
+          SDK_ZIP=$(find .hmg-api/out/dist -maxdepth 1 -name 'hmgapi-mod-sdk-*.zip' -print -quit)
+          test -n "$SDK_ZIP"
+          mkdir -p "$RUNNER_TEMP/hmgapi-sdk"
+          unzip -q "$SDK_ZIP" -d "$RUNNER_TEMP/hmgapi-sdk"
+          export HMGAPI_CP="$RUNNER_TEMP/hmgapi-sdk/lib/hmgapi-engine.jar"
+          export PYTHON=/usr/bin/python3
+          test -f "$HMGAPI_CP"
           sh build.sh
       - uses: actions/upload-artifact@v4
         with:
@@ -52,4 +64,4 @@ jobs:
             echo "Release already exists; bump RC version for another signed release."
             exit 0
           fi
-          gh release create "$tag" dist/* --target "$GITHUB_SHA" --prerelease --title "Phone Projection Scaling $version" --notes-file docs/RC1.md
+          gh release create "$tag" dist/* --target "$GITHUB_SHA" --prerelease --latest=false --title "Phone Projection Scaling $version" --notes-file docs/RC1.md
