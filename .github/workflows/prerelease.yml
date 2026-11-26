@@ -26,6 +26,12 @@ jobs:
           if [ "$GITHUB_REF_TYPE" = tag ]; then
             test "$GITHUB_REF_NAME" = "$tag"
           fi
+          if [ "$(git log -1 --format=%s)" = "Pin HMG-API RC10 compatibility build (no release)" ] && [ "$GITHUB_REF_TYPE" != tag ]; then
+            echo "production=false" >> "$GITHUB_OUTPUT"
+            echo "tag=$tag" >> "$GITHUB_OUTPUT"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           case "$version" in
             *-rc.*) echo "production=false" >> "$GITHUB_OUTPUT";;
             *) if [ "$GITHUB_REF_TYPE" != tag ]; then
@@ -46,7 +52,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Open-HMG/HMG-API
-          ref: 45c16fd438b620c71a17b7c33f799f7025baa564
+          ref: daa083717f07565ba16dc8a4d26291b7d68d3bf4
           path: .hmg-api
           persist-credentials: false
       - name: Install tools
@@ -101,7 +107,7 @@ jobs:
           path: dist/*
           if-no-files-found: error
       - name: Publish release with full changelog
-        if: github.ref == 'refs/heads/main' || github.ref_type == 'tag'
+        if: github.ref_type == 'tag' || (github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'Release '))
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
